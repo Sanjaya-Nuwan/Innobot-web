@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import 'user_form_screen.dart';
+import '../config/dev_config.dart' as config;
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -42,7 +43,7 @@ class _UserListScreenState extends State<UserListScreen>
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load users: $e')));
+      ).showSnackBar(SnackBar(content: Text('Failed to load users: \$e')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -71,7 +72,7 @@ class _UserListScreenState extends State<UserListScreen>
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to delete user: $e')));
+      ).showSnackBar(SnackBar(content: Text('Failed to delete user: \$e')));
     }
   }
 
@@ -103,7 +104,7 @@ class _UserListScreenState extends State<UserListScreen>
               const Text("Users per page: "),
               DropdownButton<int>(
                 value: _limit,
-                items: const [5, 10]
+                items: const [5, 10, 15, 20]
                     .map((e) => DropdownMenuItem(value: e, child: Text("$e")))
                     .toList(),
                 onChanged: (value) {
@@ -127,6 +128,7 @@ class _UserListScreenState extends State<UserListScreen>
                     child: DataTable(
                       columnSpacing: 20,
                       columns: const [
+                        DataColumn(label: Text('Photo')),
                         DataColumn(label: Text('Name')),
                         DataColumn(label: Text('Email')),
                         DataColumn(label: Text('Phone')),
@@ -137,6 +139,19 @@ class _UserListScreenState extends State<UserListScreen>
                       rows: users.map((user) {
                         return DataRow(
                           cells: [
+                            DataCell(
+                              user.profilePicture != null
+                                  ? Image.network(
+                                      user.profilePicture!,
+                                      width: 50,
+                                      height: 50,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(Icons.broken_image),
+                                    )
+                                  : const Icon(Icons.person, size: 50),
+                            ),
+
                             DataCell(Text(user.name)),
                             DataCell(Text(user.email)),
                             DataCell(Text(user.phone ?? '-')),
@@ -241,7 +256,7 @@ class _UserListScreenState extends State<UserListScreen>
                         onPressed: _page == 0 ? null : _prevPage,
                         icon: const Icon(Icons.arrow_back),
                       ),
-                      Text('Page ${_page + 1}'),
+                      Text('Page ${(_page + 1).toString()}'),
                       IconButton(
                         onPressed: users.length < _limit ? null : _nextPage,
                         icon: const Icon(Icons.arrow_forward),
