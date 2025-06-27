@@ -31,13 +31,12 @@ class _UserFormScreenState extends State<UserFormScreen> {
   String? address;
   int? age;
 
-  File? imageFile; // for mobile/desktop
-  PlatformFile? pickedFile; // for web
+  File? imageFile;
+  PlatformFile? pickedFile;
 
   @override
   void initState() {
     super.initState();
-    // Populate fields if editing
     name = widget.existingUser?.name ?? '';
     email = widget.existingUser?.email ?? '';
     phone = widget.existingUser?.phone;
@@ -47,7 +46,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
 
   Future<void> _pickImage() async {
     if (kIsWeb) {
-      // On web, use FilePicker without accessing Platform
+      //for web - file picker
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         withData: true,
@@ -59,7 +58,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
         });
       }
     } else {
-      // On mobile/desktop, use image_picker
+      // for mobile/desktop - image_picker
       final picked = await _picker.pickImage(source: ImageSource.gallery);
       if (picked != null) {
         setState(() {
@@ -68,6 +67,27 @@ class _UserFormScreenState extends State<UserFormScreen> {
         });
       }
     }
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) return 'Email is required';
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(value)) return 'Enter a valid email';
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.isEmpty) return null; // optional
+    final phoneRegex = RegExp(r'^\d{10}$');
+    if (!phoneRegex.hasMatch(value)) return 'Phone must be 10 digits';
+    return null;
+  }
+
+  String? _validateAge(String? value) {
+    if (value == null || value.isEmpty) return null; // optional
+    final ageNum = int.tryParse(value);
+    if (ageNum == null) return 'Age must be a valid number';
+    return null;
   }
 
   void _submitForm() async {
@@ -140,15 +160,14 @@ class _UserFormScreenState extends State<UserFormScreen> {
                 TextFormField(
                   initialValue: email,
                   decoration: const InputDecoration(labelText: 'Email'),
-                  validator: (value) => value == null || !value.contains('@')
-                      ? 'Enter valid email'
-                      : null,
+                  validator: _validateEmail,
                   onSaved: (value) => email = value!,
                 ),
                 TextFormField(
                   initialValue: phone,
                   decoration: const InputDecoration(labelText: 'Phone'),
                   keyboardType: TextInputType.phone,
+                  validator: _validatePhone,
                   onSaved: (value) => phone = value,
                 ),
                 TextFormField(
@@ -160,6 +179,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
                   initialValue: age != null ? age.toString() : '',
                   decoration: const InputDecoration(labelText: 'Age'),
                   keyboardType: TextInputType.number,
+                  validator: _validateAge,
                   onSaved: (value) =>
                       age = value!.isEmpty ? null : int.tryParse(value),
                 ),
