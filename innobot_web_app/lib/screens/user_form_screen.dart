@@ -1,7 +1,8 @@
-// lib/screens/user_form_screen.dart
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 
@@ -29,17 +30,44 @@ class _UserFormScreenState extends State<UserFormScreen> {
   String? phone;
   String? address;
   int? age;
-  File? imageFile;
+
+  File? imageFile; // for mobile/desktop
+  PlatformFile? pickedFile; // for web
 
   @override
   void initState() {
     super.initState();
-    // If editing, populate fields with existing user data
+    // Populate fields if editing
     name = widget.existingUser?.name ?? '';
     email = widget.existingUser?.email ?? '';
     phone = widget.existingUser?.phone;
     address = widget.existingUser?.address;
     age = widget.existingUser?.age;
+  }
+
+  Future<void> _pickImage() async {
+    if (kIsWeb) {
+      // On web, use FilePicker without accessing Platform
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          pickedFile = result.files.first;
+          imageFile = null;
+        });
+      }
+    } else {
+      // On mobile/desktop, use image_picker
+      final picked = await _picker.pickImage(source: ImageSource.gallery);
+      if (picked != null) {
+        setState(() {
+          imageFile = File(picked.path);
+          pickedFile = null;
+        });
+      }
+    }
   }
 
   void _submitForm() async {
@@ -48,7 +76,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
 
     try {
       final user = User(
-        id: widget.existingUser?.id, // keep nullable
+        id: widget.existingUser?.id,
         name: name,
         email: email,
         phone: phone,
@@ -59,17 +87,22 @@ class _UserFormScreenState extends State<UserFormScreen> {
 
       User resultUser;
       if (widget.existingUser == null) {
-        // Create mode
-        resultUser = await _apiService.createUser(user, imageFile?.path);
+        // Create
+        resultUser = await _apiService.createUser(
+          user,
+          filePath: imageFile?.path,
+          pickedFile: pickedFile,
+        );
       } else {
-        // Update mode - ensure id is not null
+        // Update
         if (user.id == null) {
           throw Exception('User ID is null, cannot update');
         }
         resultUser = await _apiService.updateUser(
           user.id!,
           user,
-          imageFile?.path,
+          filePath: imageFile?.path,
+          pickedFile: pickedFile,
         );
       }
 
@@ -82,17 +115,10 @@ class _UserFormScreenState extends State<UserFormScreen> {
     }
   }
 
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        imageFile = File(pickedFile.path);
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final hasImageSelected = imageFile != null || pickedFile != null;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.existingUser == null ? 'Create User' : 'Edit User'),
@@ -145,9 +171,9 @@ class _UserFormScreenState extends State<UserFormScreen> {
                       child: const Text('Pick Profile Picture'),
                     ),
                     const SizedBox(width: 10),
-                    if (imageFile != null) const Text('Image selected'),
-                    if (imageFile == null &&
-                        widget.existingUser?.profilePicture != null)
+                    if (hasImageSelected)
+                      const Text('Image selected')
+                    else if (widget.existingUser?.profilePicture != null)
                       const Text('Current image exists'),
                   ],
                 ),

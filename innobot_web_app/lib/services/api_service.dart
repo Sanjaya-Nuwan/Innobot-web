@@ -5,6 +5,8 @@ import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import '../models/user.dart';
 import '../config/dev_config.dart' as config;
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiService {
   static String get baseUrl => config.baseUrl;
@@ -21,7 +23,12 @@ class ApiService {
     }
   }
 
-  Future<User> createUser(User user, String? filePath) async {
+  // For mobile/desktop, filePath; for web, pickedFile (PlatformFile)
+  Future<User> createUser(
+    User user, {
+    String? filePath,
+    PlatformFile? pickedFile,
+  }) async {
     var uri = Uri.parse('$baseUrl/users/');
     var request = http.MultipartRequest('POST', uri);
 
@@ -31,7 +38,17 @@ class ApiService {
     if (user.address != null) request.fields['address'] = user.address!;
     if (user.age != null) request.fields['age'] = user.age.toString();
 
-    if (filePath != null) {
+    if (kIsWeb && pickedFile != null && pickedFile.bytes != null) {
+      final mimeType = lookupMimeType(pickedFile.name);
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          pickedFile.bytes!,
+          filename: pickedFile.name,
+          contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+        ),
+      );
+    } else if (!kIsWeb && filePath != null) {
       final mimeType = lookupMimeType(filePath);
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -52,7 +69,12 @@ class ApiService {
     }
   }
 
-  Future<User> updateUser(int id, User user, String? filePath) async {
+  Future<User> updateUser(
+    int id,
+    User user, {
+    String? filePath,
+    PlatformFile? pickedFile,
+  }) async {
     var uri = Uri.parse('$baseUrl/users/$id');
     var request = http.MultipartRequest('PUT', uri);
 
@@ -62,7 +84,17 @@ class ApiService {
     if (user.address != null) request.fields['address'] = user.address!;
     if (user.age != null) request.fields['age'] = user.age.toString();
 
-    if (filePath != null) {
+    if (kIsWeb && pickedFile != null && pickedFile.bytes != null) {
+      final mimeType = lookupMimeType(pickedFile.name);
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          pickedFile.bytes!,
+          filename: pickedFile.name,
+          contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+        ),
+      );
+    } else if (!kIsWeb && filePath != null) {
       final mimeType = lookupMimeType(filePath);
       request.files.add(
         await http.MultipartFile.fromPath(

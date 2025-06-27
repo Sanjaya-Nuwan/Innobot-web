@@ -48,7 +48,6 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 
   void _handleUserCreatedOrUpdated(User user) {
-    // If user exists in list, update it; otherwise, add new
     final index = users.indexWhere((u) => u.id == user.id);
     setState(() {
       if (index >= 0) {
@@ -107,7 +106,7 @@ class _UserListScreenState extends State<UserListScreen> {
                       return ListTile(
                         leading: user.profilePicture != null
                             ? Image.network(
-                                'http://localhost:8000/${user.profilePicture}',
+                                'http://127.0.0.1:8000/${user.profilePicture}',
                                 width: 40,
                                 height: 40,
                                 fit: BoxFit.cover,
