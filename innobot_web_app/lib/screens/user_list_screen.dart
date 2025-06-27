@@ -11,16 +11,19 @@ class UserListScreen extends StatefulWidget {
   State<UserListScreen> createState() => _UserListScreenState();
 }
 
-class _UserListScreenState extends State<UserListScreen> {
+class _UserListScreenState extends State<UserListScreen>
+    with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   List<User> users = [];
   int _page = 0;
-  final int _limit = 5;
+  int _limit = 5;
   bool _isLoading = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _loadUsers();
   }
 
@@ -61,9 +64,7 @@ class _UserListScreenState extends State<UserListScreen> {
   Future<void> _deleteUser(int id) async {
     try {
       await _apiService.deleteUser(id);
-      setState(() {
-        users.removeWhere((u) => u.id == id);
-      });
+      await _loadUsers();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('User deleted')));
@@ -75,6 +76,7 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 
   void _nextPage() {
+    if (users.length < _limit) return;
     setState(() {
       _page++;
     });
@@ -90,123 +92,172 @@ class _UserListScreenState extends State<UserListScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Innobot Health - User List')),
-      body: Column(
+  Widget _buildUserTable() {
+    return Container(
+      color: Colors.grey[100],
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
         children: [
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    itemCount: users.length,
-                    itemBuilder: (context, index) {
-                      final user = users[index];
-                      return ListTile(
-                        leading: user.profilePicture != null
-                            ? Image.network(
-                                'http://127.0.0.1:8000/${user.profilePicture}',
-                                width: 40,
-                                height: 40,
-                                fit: BoxFit.cover,
-                              )
-                            : const CircleAvatar(child: Icon(Icons.person)),
-                        title: Text(user.name),
-                        subtitle: Text(user.email),
-                        trailing: SizedBox(
-                          width: 110,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.edit,
-                                  color: Colors.blue,
-                                ),
-                                onPressed: () async {
-                                  final result = await Navigator.push<User>(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => UserFormScreen(
-                                        existingUser: user,
-                                        onUserCreated:
-                                            _handleUserCreatedOrUpdated,
-                                      ),
-                                    ),
-                                  );
-                                  if (result != null) {
-                                    _handleUserCreatedOrUpdated(result);
-                                  }
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      title: const Text('Confirm Delete'),
-                                      content: Text(
-                                        'Delete user "${user.name}"?',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(ctx);
-                                            _deleteUser(user.id!);
-                                          },
-                                          child: const Text('Delete'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
-                onPressed: _prevPage,
-                icon: const Icon(Icons.arrow_back),
-              ),
-              Text('Page ${_page + 1}'),
-              IconButton(
-                onPressed: _nextPage,
-                icon: const Icon(Icons.arrow_forward),
+              const Text("Users per page: "),
+              DropdownButton<int>(
+                value: _limit,
+                items: const [5, 10]
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e")))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _limit = value;
+                      _page = 0;
+                    });
+                    _loadUsers();
+                  }
+                },
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columnSpacing: 20,
+                      columns: const [
+                        DataColumn(label: Text('Name')),
+                        DataColumn(label: Text('Email')),
+                        DataColumn(label: Text('Phone')),
+                        DataColumn(label: Text('Address')),
+                        DataColumn(label: Text('Age')),
+                        DataColumn(label: Text('Actions')),
+                      ],
+                      rows: users.map((user) {
+                        return DataRow(
+                          cells: [
+                            DataCell(Text(user.name)),
+                            DataCell(Text(user.email)),
+                            DataCell(Text(user.phone ?? '-')),
+                            DataCell(Text(user.address ?? '-')),
+                            DataCell(Text(user.age?.toString() ?? '-')),
+                            DataCell(
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.blue,
+                                    ),
+                                    onPressed: () async {
+                                      final result = await Navigator.push<User>(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => UserFormScreen(
+                                            existingUser: user,
+                                            onUserCreated:
+                                                _handleUserCreatedOrUpdated,
+                                          ),
+                                        ),
+                                      );
+                                      if (result != null) {
+                                        _handleUserCreatedOrUpdated(result);
+                                      }
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: const Text('Confirm Delete'),
+                                          content: Text(
+                                            'Delete user "${user.name}"?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(ctx);
+                                                _deleteUser(user.id!);
+                                              },
+                                              child: const Text('Delete'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push<User>(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  UserFormScreen(onUserCreated: _handleUserCreatedOrUpdated),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: Colors.grey[200],
+        appBar: AppBar(
+          title: const Text('Innobot Health'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'User List'),
+              Tab(text: 'Add User'),
+              Tab(text: 'Other'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            Column(
+              children: [
+                Expanded(child: _buildUserTable()),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: _page == 0 ? null : _prevPage,
+                        icon: const Icon(Icons.arrow_back),
+                      ),
+                      Text('Page ${_page + 1}'),
+                      IconButton(
+                        onPressed: users.length < _limit ? null : _nextPage,
+                        icon: const Icon(Icons.arrow_forward),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          );
-          if (result != null) {
-            _handleUserCreatedOrUpdated(result);
-          }
-        },
-        child: const Icon(Icons.add),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: UserFormScreen(onUserCreated: _handleUserCreatedOrUpdated),
+            ),
+            const Center(child: Text('Other content goes here.')),
+          ],
+        ),
       ),
     );
   }
