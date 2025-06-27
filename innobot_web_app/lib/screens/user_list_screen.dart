@@ -1,4 +1,3 @@
-// lib/screens/user_list_screen.dart
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
@@ -104,7 +103,7 @@ class _UserListScreenState extends State<UserListScreen>
               const Text("Users per page: "),
               DropdownButton<int>(
                 value: _limit,
-                items: const [5, 10, 15, 20]
+                items: const [5, 10]
                     .map((e) => DropdownMenuItem(value: e, child: Text("$e")))
                     .toList(),
                 onChanged: (value) {
@@ -173,6 +172,7 @@ class _UserListScreenState extends State<UserListScreen>
                                             existingUser: user,
                                             onUserCreated:
                                                 _handleUserCreatedOrUpdated,
+                                            tabController: _tabController,
                                           ),
                                         ),
                                       );
@@ -232,34 +232,66 @@ class _UserListScreenState extends State<UserListScreen>
       length: 3,
       child: Scaffold(
         backgroundColor: Colors.grey[200],
-        appBar: AppBar(
-          title: const Text('Innobot Health'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'User List'),
-              Tab(text: 'Add User'),
-              Tab(text: 'Other'),
-            ],
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(100),
+          child: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 2,
+            centerTitle: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+            ),
+            title: const Text(
+              'Innobot Health',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+                color: Colors.indigo,
+              ),
+            ),
+            bottom: const PreferredSize(
+              preferredSize: Size.fromHeight(48),
+              child: TabBar(
+                indicatorColor: Colors.indigo,
+                labelColor: Colors.indigo,
+                unselectedLabelColor: Colors.grey,
+                indicatorWeight: 3,
+                tabs: [
+                  Tab(text: 'User List'),
+                  Tab(text: 'Add User'),
+                  Tab(text: 'Profile'),
+                ],
+              ),
+            ),
           ),
         ),
+
         body: TabBarView(
           children: [
             Column(
               children: [
                 Expanded(child: _buildUserTable()),
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      IconButton(
+                      OutlinedButton.icon(
                         onPressed: _page == 0 ? null : _prevPage,
                         icon: const Icon(Icons.arrow_back),
+                        label: const Text('Previous'),
                       ),
-                      Text('Page ${(_page + 1).toString()}'),
-                      IconButton(
+                      const SizedBox(width: 20),
+                      Text(
+                        'Page ${_page + 1}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 20),
+                      OutlinedButton.icon(
                         onPressed: users.length < _limit ? null : _nextPage,
                         icon: const Icon(Icons.arrow_forward),
+                        label: const Text('Next'),
                       ),
                     ],
                   ),
@@ -268,7 +300,10 @@ class _UserListScreenState extends State<UserListScreen>
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: UserFormScreen(onUserCreated: _handleUserCreatedOrUpdated),
+              child: UserFormScreen(
+                onUserCreated: _handleUserCreatedOrUpdated,
+                tabController: _tabController,
+              ),
             ),
             const Center(child: Text('Other content goes here.')),
           ],

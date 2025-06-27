@@ -9,10 +9,12 @@ import '../services/api_service.dart';
 class UserFormScreen extends StatefulWidget {
   final Function onUserCreated;
   final User? existingUser;
+  final TabController tabController;
 
   const UserFormScreen({
     Key? key,
     required this.onUserCreated,
+    required this.tabController,
     this.existingUser,
   }) : super(key: key);
 
@@ -113,6 +115,23 @@ class _UserFormScreenState extends State<UserFormScreen> {
           filePath: imageFile?.path,
           pickedFile: pickedFile,
         );
+
+        // Reset the form
+        _formKey.currentState!.reset();
+        setState(() {
+          imageFile = null;
+          pickedFile = null;
+          name = '';
+          email = '';
+          phone = null;
+          address = null;
+          age = null;
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User created successfully!')),
+        );
       } else {
         // Update
         if (user.id == null) {
@@ -124,10 +143,15 @@ class _UserFormScreenState extends State<UserFormScreen> {
           filePath: imageFile?.path,
           pickedFile: pickedFile,
         );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User updated successfully!')),
+        );
+
+        Navigator.pop(context, resultUser); // only close on update
       }
 
       widget.onUserCreated(resultUser);
-      Navigator.pop(context, resultUser);
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -141,10 +165,16 @@ class _UserFormScreenState extends State<UserFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existingUser == null ? 'Create User' : 'Edit User'),
+        title: Text(
+          widget.existingUser == null ? 'Create User' : 'Edit User',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -152,56 +182,106 @@ class _UserFormScreenState extends State<UserFormScreen> {
               children: [
                 TextFormField(
                   initialValue: name,
-                  decoration: const InputDecoration(labelText: 'Name'),
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
                   validator: (value) =>
                       value == null || value.isEmpty ? 'Required' : null,
                   onSaved: (value) => name = value!,
                 ),
+                const SizedBox(height: 15),
                 TextFormField(
                   initialValue: email,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(),
+                  ),
                   validator: _validateEmail,
                   onSaved: (value) => email = value!,
                 ),
+                const SizedBox(height: 15),
                 TextFormField(
                   initialValue: phone,
-                  decoration: const InputDecoration(labelText: 'Phone'),
+                  decoration: const InputDecoration(
+                    labelText: 'Phone',
+                    prefixIcon: Icon(Icons.phone),
+                    border: OutlineInputBorder(),
+                  ),
                   keyboardType: TextInputType.phone,
                   validator: _validatePhone,
                   onSaved: (value) => phone = value,
                 ),
+                const SizedBox(height: 15),
                 TextFormField(
                   initialValue: address,
-                  decoration: const InputDecoration(labelText: 'Address'),
+                  decoration: const InputDecoration(
+                    labelText: 'Address',
+                    prefixIcon: Icon(Icons.location_on),
+                    border: OutlineInputBorder(),
+                  ),
                   onSaved: (value) => address = value,
                 ),
+                const SizedBox(height: 15),
                 TextFormField(
                   initialValue: age != null ? age.toString() : '',
-                  decoration: const InputDecoration(labelText: 'Age'),
+                  decoration: const InputDecoration(
+                    labelText: 'Age',
+                    prefixIcon: Icon(Icons.calendar_today),
+                    border: OutlineInputBorder(),
+                  ),
                   keyboardType: TextInputType.number,
                   validator: _validateAge,
                   onSaved: (value) =>
                       age = value!.isEmpty ? null : int.tryParse(value),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
                 Row(
                   children: [
-                    ElevatedButton(
+                    ElevatedButton.icon(
                       onPressed: _pickImage,
-                      child: const Text('Pick Profile Picture'),
+                      icon: const Icon(Icons.image),
+                      label: const Text('Pick Profile Picture'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     if (hasImageSelected)
-                      const Text('Image selected')
+                      const Text(
+                        'Image selected',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      )
                     else if (widget.existingUser?.profilePicture != null)
-                      const Text('Current image exists'),
+                      const Text(
+                        'Using current image',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _submitForm,
-                  child: Text(
-                    widget.existingUser == null ? 'Submit' : 'Update',
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _submitForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      widget.existingUser == null ? 'Submit' : 'Update',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
                 ),
               ],
