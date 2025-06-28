@@ -38,6 +38,12 @@ backend/
    ```
    pip install -r requirements.txt
    ```
+   
+2. Change databese URL:
+   ```
+   backend/app/database.py
+   ```
+   
 3. Start the backend server:
    ```
    .venv\Scripts\python.exe -m uvicorn app.main:app --reload
