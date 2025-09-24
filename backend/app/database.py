@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = "postgresql://innobot_user:%40V8xs%40%25IX13%2A@localhost:5432/crud_app"
+DATABASE_URL = ""
 
 # DATABASE_URL = os.getenv("DATABASE_URL")
 #
